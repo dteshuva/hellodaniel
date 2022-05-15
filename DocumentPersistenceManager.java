@@ -99,7 +99,6 @@ public class DocumentPersistenceManager implements PersistenceManager<URI, Docum
         String filePath=pathCreator(uri);
         File file = new File(filePath);
         file.getParentFile().mkdirs();
-        file.createNewFile();
         if (!file.exists()) {
          System.out.println("stops here: "+filePath);
             return null;
@@ -109,9 +108,7 @@ public class DocumentPersistenceManager implements PersistenceManager<URI, Docum
         DocumentDeserializer des=new DocumentDeserializer();
         Document doc = des.deserialize(json, Document.class, null);
         System.out.println(doc.getKey()+" "+doc.getDocumentTxt());
-        file.delete();
         reader.close();
-        this.delete(uri);
         return doc;
     }
     private String pathCreator(URI uri){
