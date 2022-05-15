@@ -64,6 +64,7 @@ public class DocumentPersistenceManager implements PersistenceManager<URI, Docum
         JsonElement jsonEl=ser.serialize(val, Document.class, null);
         File file=new File(filePath);
         file.getParentFile().mkdirs();
+        file.createNewFile();
         FileWriter writer = new FileWriter(file);
         writer.write(gson.toJson(val));
         writer.close();
@@ -98,6 +99,7 @@ public class DocumentPersistenceManager implements PersistenceManager<URI, Docum
         String filePath=pathCreator(uri);
         File file = new File(filePath);
         file.getParentFile().mkdirs();
+        file.createNewFile();
         if (!file.exists()) {
          System.out.println("stops here: "+filePath);
             return null;
