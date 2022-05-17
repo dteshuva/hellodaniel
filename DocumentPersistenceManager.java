@@ -60,11 +60,11 @@ public class DocumentPersistenceManager implements PersistenceManager<URI, Docum
             return;
         }
         String filePath=pathCreator(uri);
-        DocumentSerializer ser=new DocumentSerializer();
-        JsonElement jsonEl=ser.serialize(val, Document.class, null);
         File file=new File(filePath);
+        if(!file.exists()){
+            file.mkdirs();
+        }
         file.getParentFile().mkdirs();
-        file.createNewFile();
         FileWriter writer = new FileWriter(file);
         writer.write(gson.toJson(val));
         writer.close();
@@ -100,7 +100,7 @@ public class DocumentPersistenceManager implements PersistenceManager<URI, Docum
         File file = new File(filePath);
         file.getParentFile().mkdirs();
         if (!file.exists()) {
-         System.out.println("stops here: "+filePath);
+        // System.out.println("stops here: "+filePath);
             return null;
         }
         FileReader reader = new FileReader(file);
@@ -112,16 +112,15 @@ public class DocumentPersistenceManager implements PersistenceManager<URI, Docum
         return doc;
     }
     private String pathCreator(URI uri){
+        
         String host = uri.getHost();
         String path = uri.getPath();
+        System.out.println(uri+" |"+host+" |"+path);
         String main=host+path+".json";
+        System.out.println(main);
         String filePath=this.baseDir+File.separator;
-        int leng=filePath.length();
-        filePath=filePath.substring(0,leng)+"/"+main;
-      /*  System.out.println("*******");
+        filePath=filePath+main;
         System.out.println(filePath);
-        System.out.println(this.baseDir+uri.toString().replace("http:/","")+".json");
-        System.out.println("*******"); */
         return filePath;
     }
     @Override
