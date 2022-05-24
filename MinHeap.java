@@ -27,12 +27,17 @@ public abstract class MinHeap<E extends Comparable<E>> {
      * is elements[i] > elements[j]?
      */
     protected boolean isGreater(int i, int j) {
-        /** 
         E a=(E)this.table.get(this.elements[i]);
         E b=(E)this.table.get(this.elements[j]);
+        if((a==null&&b!=null)||(a==null&&b==null)){
+            return false;
+        }
+        if(a!=null&&b==null){
+            return true;
+        }
         return a.compareTo(b)>0;
-        */
-        return this.elements[i].compareTo(this.elements[j]) > 0;
+        
+       // return this.elements[i].compareTo(this.elements[j]) > 0;
     }
 
     /**
