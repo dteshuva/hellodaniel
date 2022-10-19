@@ -47,25 +47,25 @@ public class HydratedHakofos extends BigOMeasurable {
         index=i;
         count=0;
         this.sum=0;
-        while(count<waterAvailable.length){ // you may change the while to a for lood
+        for(int j=index; j<waterAvailable.length; j++){
           sum+=(waterAvailable[index]-waterRequired[index]);
-          if(sum<0)
-          break;
+          if(sum<0){
+            i=j;
+            break;
+          }
           index++;
-          count++;
-          if(index==waterAvailable.length)
-          index=0;
+
         }
-        if(count==waterAvailable.length){
+        if(index==waterAvailable.length){
           return (i+1);
-        }
+        }    
       }
       
       return -1;
   } // doIt
 
   protected boolean isPossible(int[]waterAvailable,int[] waterRequired){
-    int sumA=0,sumR=0;
+    long sumA=0,sumR=0;
     for(int i=0; i<waterAvailable.length; i++){
       sumA+=waterAvailable[i];
       sumR+=waterRequired[i];
