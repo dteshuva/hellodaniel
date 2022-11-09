@@ -15,7 +15,7 @@ public class XenoHematology extends BigOMeasurable{
    private int[] id; // parent link (site indexed)
    private int[] sz; // size of component for roots (site indexed)
    private int size; // number of components
-   private HashMap<Integer,HashSet<Integer>> incomp; //
+   private HashMap<Integer,Integer> incomp; //
 
   /** Constructor: specifies the size of the xeno population.
    *
@@ -24,7 +24,7 @@ public class XenoHematology extends BigOMeasurable{
    * identified by an integer 0..populationSize -1.
    */
   public XenoHematology(){
-    this.size=10;
+
   }
   public XenoHematology(final int populationSize) {
     if(populationSize<0){
@@ -35,7 +35,7 @@ public class XenoHematology extends BigOMeasurable{
     this.sz = new int[populationSize];
     for (int i = 0; i < populationSize; i++) sz[i] = 1;
     this.incomp=new HashMap<>();
-    for(int i=0; i< populationSize; i++) incomp.put(i, new HashSet<>());
+   // for(int i=0; i< populationSize; i++) incomp.put(i, new HashSet<>());
     this.size=populationSize;
     // fill me in!
   } // constructor
@@ -57,19 +57,37 @@ public class XenoHematology extends BigOMeasurable{
    * @throws IllegalArgumentException if the supplied values are
    * incompatible with the @param Javadoc.
    */
-  public void setIncompatible(int xeno1, int xeno2) {
+  public void setIncompatible(int xeno1, int xeno2) { // roughly o(logn)
     if(xeno1<0||xeno2<0 || xeno1>=this.size ||xeno2>=this.size){
       throw new IllegalArgumentException("Parameters didn't match to the requirements");
     }
     if(xeno1==xeno2) {return ;}
-    if(areCompatible(xeno1, xeno2)){ return; }
+    if(areCompatible(xeno1, xeno2)||areIncompatible(xeno1, xeno2)){ return; }
     int r1=find(xeno1),r2=find(xeno2);
-    this.incomp.get(r1).add(xeno2);
-    this.incomp.get(r2).add(xeno1);
-    Set<Integer> notComp1=this.incomp.get(r1);
-    Set<Integer> notComp2=this.incomp.get(r2);
-    for(int n : notComp1) this.setCompatible(xeno2, n);
-    for(int n : notComp2) this.setCompatible(xeno1, n);
+    if(!this.incomp.containsKey(r1)&&!this.incomp.containsKey(r2)){
+      this.incomp.put(r1, r2);
+      this.incomp.put(r2, r1);
+    }
+    else if(!this.incomp.containsKey(r1)&&this.incomp.containsKey(r2)){
+       union(r1, this.incomp.get(r2));
+       r1=find(xeno1);
+       this.incomp.put(r1,r2);
+       this.incomp.put(r2, r1);
+    }
+    else if(this.incomp.containsKey(r1)&&!this.incomp.containsKey(r2)){
+        union(r2, this.incomp.get(r1));
+        r2=find(xeno2);
+        this.incomp.put(r1,r2);
+        this.incomp.put(r2, r1);
+    }
+    else{
+      union(r1, this.incomp.get(r2));
+      union(r2, this.incomp.get(r1));
+      r1=find(xeno1);
+      r2=find(xeno2);
+      this.incomp.put(r1,r2);
+      this.incomp.put(r2, r1);
+    }
      // 1 incomp with 2-10
     // 11 incomp with 12-22
     //if compative you return, else you add each one to the other set and add following conditions
@@ -93,37 +111,33 @@ public class XenoHematology extends BigOMeasurable{
    * @throws IllegalArgumentException if the supplied values are
    * incompatible with the @param Javadoc.
    */
-  public void setCompatible(int xeno1, int xeno2) { //o(n) worst case
+  public void setCompatible(int xeno1, int xeno2) { //o(1) worst case
     if(xeno1<0||xeno2<0 || xeno1>=this.size ||xeno2>=this.size){
       throw new IllegalArgumentException("Parameters didn't match to the requirements");
     }
     if(xeno1==xeno2) return;
     if(areIncompatible(xeno1, xeno2)){return;}
-    int r1=find(xeno1),r2=find(xeno2),root,other;
+    int r1=find(xeno1),r2=find(xeno2);
     if(r1==r2) return;
-    if(sz[r1]<sz[r2]){
-      id[r1]=r2;
-      sz[r2]+=sz[r1];
-      root=r2;
-      other=r1;
+    union(xeno1,xeno2);
+    int upd=find(xeno1),other= upd==r1? r2 : r1;
+    if(!incomp.containsKey(r1)&&incomp.containsKey(r2)){
+      if(upd!=r2)
+      setIncompatible(upd, incomp.get(r2));
+    }  
+    else if(incomp.containsKey(r1)&&!incomp.containsKey(r2)) {
+      if(upd!=r1)
+      setIncompatible(upd, incomp.get(r1));
     }
-    else{
-      root=r1;
-      other=r2;
-      id[r2]=r1;
-      sz[r1]+=sz[r2];
+    else if(incomp.containsKey(r1)&&incomp.containsKey(r2)){
+      if(upd!=r1)
+      setIncompatible(upd, incomp.get(r1));
+      if(upd!=r2)
+      setIncompatible(upd, incomp.get(r2));
+        
     }
-   
-    if(this.incomp.get(root).size()>=this.incomp.get(other).size()){ 
-      this.incomp.get(root).addAll(this.incomp.get(other));
-      this.incomp.remove(other);
-    }
-    else{
-      HashSet<Integer> temp=this.incomp.get(other);
-      temp.addAll(this.incomp.get(root));
-      this.incomp.put(root, temp);
-      this.incomp.remove(other);
-    }
+    incomp.remove(other);
+    
   }
 
   /** Returns true iff xeno1 and xeno2 are compatible from a hematology
@@ -165,12 +179,21 @@ public class XenoHematology extends BigOMeasurable{
     if(xeno1==xeno2) return false;
     int r1=find(xeno1),r2=find(xeno2);
     if(r1==r2) return false;
-    if(this.incomp.get(r1).contains(r2) || this.incomp.get(r2).contains(r1)){
-      this.incomp.get(r1).add(r2);
-      this.incomp.get(r2).add(r1);
-      return true;
-    } 
-    return false;               // replace to taste!
+    if(!this.incomp.containsKey(r1)||!this.incomp.containsKey(r2)) return false;
+    return (this.incomp.get(r1)==r2  || this.incomp.get(r2)==r1);              // replace to taste!
+  }
+  private void union(int xeno1,int xeno2){
+    int r1=find(xeno1),r2=find(xeno2);
+    if(r1==r2) return;
+    if(sz[r1]<sz[r2]){
+      id[r1]=r2;
+      sz[r2]+=sz[r1];
+    }
+    else{
+    
+      id[r2]=r1;
+      sz[r1]+=sz[r2];
+    }
   }
   private int find(int p) // almost o(1)
  { // Follow links to find a root.
@@ -180,27 +203,26 @@ public class XenoHematology extends BigOMeasurable{
  }
  return p;
  }
- // 5- 11 1
  @Override
-  public void setup(int populationSize){
-     this.id = new int[populationSize];
-   for (int i = 0; i < populationSize; i++) id[i] = i;
-    this.sz = new int[populationSize];
-    for (int i = 0; i < populationSize; i++) sz[i] = 1;
-    this.incomp=new HashMap<>();
-    for(int i=0; i< populationSize; i++) incomp.put(i, new HashSet<>());
-    this.size=populationSize;
+ public void execute() {
+     this.setIncompatible(this.size/2, 1+this.size/2);
+ }
+
+ @Override
+ public void setup(int populationSize){
+  this.id = new int[populationSize];
+  for (int i = 0; i < populationSize; i++) id[i] = i;
+   this.sz = new int[populationSize];
+   for (int i = 0; i < populationSize; i++) sz[i] = 1;
+   this.incomp=new HashMap<>();
+  // for(int i=0; i< populationSize; i++) incomp.put(i, new HashSet<>());
+   this.size=populationSize;
+   
      int ind=this.size/2;
      for(int i=0; i<ind; i++) this.setIncompatible(ind, i);
      for(int i=ind+2; i<this.size; i++) this.setIncompatible(ind+1, i);
-
-  }
-  @Override
-  public void execute() {
-     
-    this.setIncompatible(this.size/2-5, 3+this.size/2);
-  }
- 
+ }
+ // 5- 11 1
  // 1 - 2 3 5 7 8
  // 2 - 3 7 9
  // 2 - 2 3 5 7 8 9
