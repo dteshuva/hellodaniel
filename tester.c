@@ -23,6 +23,7 @@ double fracToBin(double n,int k){ //k=-1 and change it so ornum is a paramater
     if(curNum==1||curNum==orNum){ return rem+ pow(10,k);}
     return rem+ pow(10,k)+ fracToBin(curNum-rem,k-1);
 }
+/*
 char* convertFrac(double n){
     char bin[]="";
     int decPart;
@@ -38,7 +39,7 @@ char* convertFrac(double n){
         n=fracPart;
     }
     return bin;
-}
+} */
 // function receives a long and returns how many shifts(divide by 10) are needed, so it's the form of 1.frac
 int count(long n){
     if((int)n==1)
@@ -53,10 +54,12 @@ int count(long n){
 int main(int argc, char *argv[]) {
     char *mem;
     char *mem2;
+    printf("lets go");
     // conert arguments to double
     double x=strtod(argv[1],&mem);
     double y=strtod(argv[2],&mem2);
     // get rid of frac part, 2.65 -> 2
+    printf("argiments are %f and %f",x,y);
     int xw=(int)x,yw=(int)y;
     double xd=x-xw,yd=y-yw;  // getting the fraction part of the number
     long binOfxW= convert(xw),binOfyW= convert(yw); // converting decimal part to binary
@@ -73,19 +76,13 @@ int main(int argc, char *argv[]) {
     long fractX=(int)fracX,fractY=(int)fracY; // moving the frac to a type long
     char sX= x>=0? '0':'1',sY=y>=0?'0':'1';
     char s1[20],s2[20],s3[20],s4[20];
-    sprintf(s1,"%d",expBin);
-    sprintf(s2,"%d",fractX);
-    sprintf(s3,"%d",eypBin);
-    sprintf(s4,"%d",fractY);
+    sprintf(s1,"%ld",expBin);
+    sprintf(s2,"%ld",fractX);
+    sprintf(s3,"%ld",eypBin);
+    sprintf(s4,"%ld",fractY);
     strcat(s1,s2);
     strcat(s3,s4);
     long nX= atoi(s1),nY= atoi(s3); // combining frac and dec part of x and y
-
-
-
-
-
-
 	extern int MBPixelCalc(long,long);
 
    printf("MBPixelCalc() returned %d.\n", MBPixelCalc(nX,nY));
