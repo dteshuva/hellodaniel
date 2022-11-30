@@ -30,17 +30,42 @@ double fracToBin(double n,int k, double orNum){ //k=-1 and change it so ornum is
    // printf("%f +frac()\n",rem*pow(10,k));
     return rem*pow(10,k)+ fracToBin(curNum-rem,k-1,orNum);
 }
-
-// function receives a long and returns how many shifts(divide by 10) are needed, so it's the form of 1.frac
-int count(long n){
-    if((int)n==1)
-        return 0;
-    int cn=0;
-    while((int)n!=1){
-        cn++;
-        n/=10;
+long powBin(int n){
+    long res=2;
+    for(int i=2; i<=n; i++){
+        res*=2; }
+    return res;
+}
+long calcDec(long n){
+    long res=0;
+    int init=58,d;
+    printf("%ld :\n",n);
+    while(n>0||init==64){
+       d=n%10;
+        printf("%d \n",d);
+       if(d==1){ res+= powBin(init);}
+       n/=10;
+       init++;
     }
-    return cn;
+    return res;
+}
+long trick(int n){
+    long res;
+    switch (n) {
+        case 1:
+            res= 288230376151711744;
+            break;
+        case 0:
+            res=0;
+            break;
+        case -2:
+            res= -576460752303423488;
+            break;
+        default:
+            res= -288230376151711744;
+            break;
+    }
+    return res;
 }
 int main(int argc, char *argv[]) {
     char *mem;
@@ -50,27 +75,19 @@ int main(int argc, char *argv[]) {
     double y=strtod(argv[2],&mem2);
     // get rid of frac part, 2.65 -> 2
 
-    printf("arguments are %f and %f\n",x,y);
+  //  printf("arguments are %f and %f\n",x,y);
     int xw=(int)x,yw=(int)y;
     double xd=x-xw,yd=y-yw;  // getting the fraction part of the number
 
     long binOfxW= convert(xw),binOfyW= convert(yw); // converting decimal part to binary
     double binOfxF= fracToBin(xd,-1,xd),binOfyF= fracToBin(yd,-1,yd); // converting the fractional part of the number to binary
-    long nX,nY;
+  //  long nX= calcDec(binOfxW),nY= calcDec(binOfyW);
+    long nX= trick(xw),nY= trick(yw);
+    printf("x is %ld and y is %ld\n",nX,nY);
 
-/*    char sX= x>=0? '0':'1',sY=y>=0?'0':'1';
-    char s1[20],s2[20],s3[20],s4[20];
-    printf("decimal of x: %ld and fraction is: %f\n",binOfxW,binOfxF);
-    printf("decimal of y: %ld and fraction is: %f\n",binOfyW,binOfyF);
-    sprintf(s1,"%ld",binOfxW);
-    sprintf(s2,"%ld",binOfxF);
-    sprintf(s3,"%ld",binOfyW);
-    sprintf(s4,"%ld",binOfyF);
-    strcat(s1,s2);
-    strcat(s3,s4);
-    long nX= atoi(s1),nY= atoi(s3); // combining frac and dec part of x and y  */
+
     extern int MBPixelCalc(long,long);
-     printf("x: %ld y: %ld\n",nX,nY);
+    // printf("x: %ld y: %ld\n",nX,nY);
     printf("MBPixelCalc() returned %d.\n", MBPixelCalc(nX,nY));
     return 0;
 }
