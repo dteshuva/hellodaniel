@@ -49,6 +49,24 @@ long calcDec(long n){
     }
     return res;
 }
+long calcFrac(double n){
+    int count=0;
+    long res=0;
+    double temp=n;
+    while(n*10<1){
+        n*=10;
+        count++;
+    }
+    int firstExp=57-count;
+    while((temp-(int)temp)!=0){
+        temp*=10;
+        if((int)temp%10==1){
+            res+= powBin(firstExp);
+        }
+        firstExp--;
+    }
+    return res;
+}
 long trick(int n){
     long res;
     switch (n) {
@@ -78,11 +96,13 @@ int main(int argc, char *argv[]) {
   //  printf("arguments are %f and %f\n",x,y);
     int xw=(int)x,yw=(int)y;
     double xd=x-xw,yd=y-yw;  // getting the fraction part of the number
-
+     // printf("size: %d\n", sizeof(long));
     long binOfxW= convert(xw),binOfyW= convert(yw); // converting decimal part to binary
     double binOfxF= fracToBin(xd,-1,xd),binOfyF= fracToBin(yd,-1,yd); // converting the fractional part of the number to binary
   //  long nX= calcDec(binOfxW),nY= calcDec(binOfyW);
     long nX= trick(xw),nY= trick(yw);
+    nX+= calcFrac(binOfxF);
+    nY+= calcFrac(binOfyF);
     printf("x is %ld and y is %ld\n",nX,nY);
 
 
