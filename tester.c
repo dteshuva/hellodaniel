@@ -31,19 +31,24 @@ long calcFrac(double n){
         n*=10;
         count++;
     }
-
+    count++;
     int firstExp=57-count, c=0;
-    while((temp-(int)temp)!=0&&c<=250){
+    double stop=0;
+    while((temp-(int)temp)!=0&&c<=800){
       //  printf("n %f \n",temp-(int)temp);
-        temp*=10;
+        n*=10;
      //   printf("p %f \n",temp-(int)temp);
       //  printf("hope u die %ld\n",powBin(count+1));
-        if((int)temp%10==1){
-            res+= (fiftyEight/powBin(count+1));
+        if((int)n%10==1){
+            res+= (fiftyEight/powBin(count));
         }
         count++;
         c++;
         firstExp--;
+      //  printf("%f and rounded %d\n",temp,(int)temp);
+        //printf("their substraction %f \n",temp-(int)temp);
+       // printf("tov %d\n\n",((temp-(int)temp)!=stop));
+
     }
     return res;
 }
