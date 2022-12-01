@@ -3,20 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// function gets a whole number and returns a long that represents the number in binary
-long convert(int n) {
-    long bin = 0;
-    int rem, i = 1;
-
-    while (n!=0) {
-        rem = n % 2;
-        n /= 2;
-        bin += rem * i;
-        i *= 10;
-    }
-
-    return bin;
-}
 double pow(double x,double y){
     double result=1/x;
     for(int i=2; i<=-1*y; i++) result*=(1/x);
@@ -36,33 +22,27 @@ long powBin(int n){
         res*=2; }
     return res;
 }
-long calcDec(long n){
-    long res=0;
-    int init=58,d;
-    printf("%ld :\n",n);
-    while(n>0||init==64){
-       d=n%10;
-        printf("%d \n",d);
-       if(d==1){ res+= powBin(init);}
-       n/=10;
-       init++;
-    }
-    return res;
-}
+
 long calcFrac(double n){
     int count=0;
-    long res=0;
+    long res=0, fiftyEight=288230376151711744;
     double temp=n;
     while(n*10<1){
         n*=10;
         count++;
     }
-    int firstExp=57-count;
-    while((temp-(int)temp)!=0){
+
+    int firstExp=57-count, c=0;
+    while((temp-(int)temp)!=0&&c<=250){
+      //  printf("n %f \n",temp-(int)temp);
         temp*=10;
+     //   printf("p %f \n",temp-(int)temp);
+      //  printf("hope u die %ld\n",powBin(count+1));
         if((int)temp%10==1){
-            res+= powBin(firstExp);
+            res+= (fiftyEight/powBin(count+1));
         }
+        count++;
+        c++;
         firstExp--;
     }
     return res;
@@ -95,14 +75,17 @@ int main(int argc, char *argv[]) {
 
   //  printf("arguments are %f and %f\n",x,y);
     int xw=(int)x,yw=(int)y;
-    double xd=x-xw,yd=y-yw;  // getting the fraction part of the number
+    double xd=x>=0? (x-xw):-1*(x-xw),yd=y>=0?(y-yw):-1*(y-yw);  // getting the fraction part of the number
      // printf("size: %d\n", sizeof(long));
-    long binOfxW= convert(xw),binOfyW= convert(yw); // converting decimal part to binary
     double binOfxF= fracToBin(xd,-1,xd),binOfyF= fracToBin(yd,-1,yd); // converting the fractional part of the number to binary
   //  long nX= calcDec(binOfxW),nY= calcDec(binOfyW);
     long nX= trick(xw),nY= trick(yw);
+    if(binOfxF>0)
     nX+= calcFrac(binOfxF);
+    if(binOfyF>0)
     nY+= calcFrac(binOfyF);
+    if(xw==0&&x<0) nX=-1*nX;
+    if(yw==0&&y<0) nY=-1*nY;
     printf("x is %ld and y is %ld\n",nX,nY);
 
 
