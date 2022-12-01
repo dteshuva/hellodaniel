@@ -4,49 +4,34 @@
 .globl MBPixelCalc
 
 MBPixelCalc:
-.LFB0:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	movq	%rdi, -40(%rbp)
-	movq	%rsi, -48(%rbp)
-	movq	$0, -24(%rbp)
-	movq	$0, -16(%rbp)
-	movl	$0, -32(%rbp)
-	movl	$1000, -28(%rbp)
-	jmp	.L2
-.L4:
-	movq	-24(%rbp), %rax
-	imulq	-24(%rbp), %rax
-	movq	%rax, %rdx
-	movq	-16(%rbp), %rax
-	imulq	-16(%rbp), %rax
-	subq	%rax, %rdx
-	movq	-40(%rbp), %rax
-	addq	%rdx, %rax
-	movq	%rax, -8(%rbp)
-	movq	-40(%rbp), %rax
-	addq	%rax, %rax
-	imulq	-48(%rbp), %rax
-	movq	%rax, %rdx
-	movq	-16(%rbp), %rax
-	addq	%rdx, %rax
-	movq	%rax, -48(%rbp)
-	movq	-8(%rbp), %rax
-	movq	%rax, -40(%rbp)
-	addl	$1, -32(%rbp)
+    movq    $0, %rdx
+    movq    $0, %rcx
+    movq    $0, %rax
 .L2:
-	movq	-24(%rbp), %rax
-	imulq	-24(%rbp), %rax
-	movq	%rax, %rdx
-	movq	-16(%rbp), %rax
-	imulq	-16(%rbp), %rax
-	addq	%rdx, %rax
-	cmpq	$4, %rax
-	jg	.L3
-	movl	-32(%rbp), %eax
-	cmpl	-28(%rbp), %eax
-	jl	.L4
+    movq    $0, %r8
+    addq    %rdx, %r8
+    imulq   %rdx, %r8
+    addq    %rdi, %r8
+    movq    $0, %r9
+    addq    %rcx, %r9
+    imulq   %rcx, %r9
+    subq    %r9, %r8
+    imulq   %rdi, %rsi
+    imul    $2, %rsi
+    addq    %rcx, %rsi
+    movq    %r8, %rdi
+    incq    %rax
+    movq    $0, %r10
+    addq    %rdx, %r10
+    imulq   %rdx, %r10
+    movq    $0, %r11
+    addq    %rcx, %r11
+    imulq   %rcx, %r11
+    addq    %r11, %r10
+    cmpq    $4, %r10
+    jg  .L3
+    cmpq $1000, %rax
+    jl  .L2
 .L3:
-	movl	-32(%rbp), %eax
-	popq	%rbp
-	ret
+    ret
+    
