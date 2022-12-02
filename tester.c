@@ -91,7 +91,6 @@ int main(int argc, char *argv[]) {
     nY+= calcFrac(binOfyF);
     if(xw==0&&x<0) nX=-1*nX;
     if(yw==0&&y<0) nY=-1*nY;
-    printf("x is %ld and y is %ld\n",nX,nY);
 
 
     extern int MBPixelCalc(long,long);
