@@ -1,45 +1,50 @@
-.section .data
-
-.section .text
-.globl MBPixelCalc
-
+	.text
+	.globl	MBPixelCalc
 MBPixelCalc:
-    movq    $0, %r8  /* Xs */
-    movq    $0, %r9  /* Ys */
-    movq    $0, %r11 /* iteration */
-
+	pushq	%rbp
+	movq	%rsp, %rbp
+	movsd	%xmm0, -40(%rbp)
+	movsd	%xmm1, -48(%rbp)
+	pxor	%xmm0, %xmm0
+	movsd	%xmm0, -24(%rbp)
+	pxor	%xmm0, %xmm0
+	movsd	%xmm0, -16(%rbp)
+	movl	$0, %edi
+	jmp	.L2
+.L5:
+	movsd	-24(%rbp), %xmm0
+	mulsd	-24(%rbp), %xmm0
+	movsd	-16(%rbp), %xmm1
+	mulsd	-16(%rbp), %xmm1
+	subsd	%xmm1, %xmm0
+	movsd	-40(%rbp), %xmm1
+	addsd	%xmm1, %xmm0
+	movsd	%xmm0, -8(%rbp)
+	movsd	-24(%rbp), %xmm0
+	addsd	%xmm0, %xmm0
+	mulsd	-16(%rbp), %xmm0
+	movsd	-48(%rbp), %xmm1
+	addsd	%xmm1, %xmm0
+	movsd	%xmm0, -16(%rbp)
+	movsd	-8(%rbp), %xmm0
+	movsd	%xmm0, -24(%rbp)
+	addl	$1, %edi
 .L2:
-    movq    %r8, %rax
-    imulq   %rax
-    sal     $6, %rdx
-    sar     $58, %rax
-    movq    %rax, %r10 /* tempx */
-    movq    %r9, %rax
-    imulq   %rax
-    sal     $6, %rdx
-    sar     $58, %rax
-    subq    %rax, %r10
-    addq    %rdi, %r10
-    imulq   %rdi, %rsi  /* y=y*x */
-    imulq    $2, %rsi  /* y=2*y*x */
-    addq    %r10, %rsi  /* y=2*y*x+tempx */
-    movq    %r10, %rdi
-    addq    $1, %r11 /* iteration++ */
-    movq    %r8, %rax
-    imulq   %rax
-    sal     $6, %rdx
-    sar     $58, %rax
-    movq    %rax, %rcx
-    movq    %r9, %rax
-    imulq   %rax
-    sal     $6, %rdx
-    sar     $58, %rax
-    addq    %rax, %rcx
-    cmpq    $4, %rcx
-    jl  .L3
-    cmpq $1000, %r11
-    jg  .L2
+	movsd	-24(%rbp), %xmm0
+	movapd	%xmm0, %xmm1
+	mulsd	-24(%rbp), %xmm1
+	movsd	-16(%rbp), %xmm0
+	mulsd	-16(%rbp), %xmm0
+	addsd	%xmm1, %xmm0
+	movsd	.LC1(%rip), %xmm1
+	ucomisd	%xmm0, %xmm1
+	jb	.L3
+	cmpl	$999, %edi
+	jle	.L5
 .L3:
-    movq %r11, %rax
-    ret
-    
+	movl	%edi, %eax
+	popq	%rbp
+	ret
+.LC1:
+	.long	0
+	.long	1074790400
