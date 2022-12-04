@@ -1,50 +1,46 @@
 	.text
 	.globl	MBPixelCalc
 MBPixelCalc:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	movsd	%xmm0, -40(%rbp)
-	movsd	%xmm1, -48(%rbp)
+	movsd	%xmm0, %xmm2
 	pxor	%xmm0, %xmm0
-	movsd	%xmm0, -24(%rbp)
-	pxor	%xmm0, %xmm0
-	movsd	%xmm0, -16(%rbp)
+	movsd	%xmm0, %xmm4
+	movsd	%xmm0, %xmm5
 	movl	$0, %edi
-	jmp	.L2
-.L5:
-	movsd	-24(%rbp), %xmm0
-	mulsd	-24(%rbp), %xmm0
-	movsd	-16(%rbp), %xmm1
-	mulsd	-16(%rbp), %xmm1
-	subsd	%xmm1, %xmm0
-	movsd	-40(%rbp), %xmm1
-	addsd	%xmm1, %xmm0
-	movsd	%xmm0, -8(%rbp)
-	movsd	-24(%rbp), %xmm0
-	addsd	%xmm0, %xmm0
-	mulsd	-16(%rbp), %xmm0
-	movsd	-48(%rbp), %xmm1
-	addsd	%xmm1, %xmm0
-	movsd	%xmm0, -16(%rbp)
-	movsd	-8(%rbp), %xmm0
-	movsd	%xmm0, -24(%rbp)
-	addl	$1, %edi
+	movsd	%xmm1, %xmm3
+	jmp	.L1
 .L2:
-	movsd	-24(%rbp), %xmm0
-	movapd	%xmm0, %xmm1
-	mulsd	-24(%rbp), %xmm1
-	movsd	-16(%rbp), %xmm0
-	mulsd	-16(%rbp), %xmm0
+	movsd	%xmm4, %xmm0
+	mulsd	%xmm4, %xmm0
+	movsd	%xmm5, %xmm1
+	mulsd	%xmm5, %xmm1
+	subsd	%xmm1, %xmm0
+	movsd	%xmm2, %xmm1
 	addsd	%xmm1, %xmm0
-	movsd	.LC1(%rip), %xmm1
-	ucomisd	%xmm0, %xmm1
-	jb	.L3
-	cmpl	$999, %edi
-	jle	.L5
+	movsd	%xmm0, %xmm6
+	movsd	%xmm4, %xmm0
+	addsd	%xmm0, %xmm0
+	mulsd	%xmm5, %xmm0
+	movsd	%xmm3, %xmm1
+	addsd	%xmm1, %xmm0
+	movsd	%xmm0, %xmm5
+	movsd	%xmm6, %xmm0
+	movsd	%xmm0, %xmm4
+	addl	$1, %edi
+.L1:
+	movsd	%xmm4, %xmm0
+	movsd	%xmm0, %xmm1
+	mulsd	%xmm4, %xmm1
+	movsd	%xmm5, %xmm0
+	mulsd	%xmm5, %xmm0
+	addsd	%xmm1, %xmm0
+	movsd	.address(%rip), %xmm1
+	comisd	%xmm1, %xmm0
+	ja	.L3
+	cmpl	$1000, %edi
+	jl	.L2
 .L3:
 	movl	%edi, %eax
-	popq	%rbp
 	ret
-.LC1:
+.address:
 	.long	0
 	.long	1074790400
