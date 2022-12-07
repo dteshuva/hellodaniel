@@ -1,4 +1,3 @@
-	.text
 	.globl	MBPixelCalc
 MBPixelCalc:
 	movsd	%xmm0, %xmm2
