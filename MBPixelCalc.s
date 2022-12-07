@@ -5,8 +5,8 @@ MBPixelCalc:
 	pxor	%xmm0, %xmm0
 	movsd	%xmm0, %xmm4
 	movsd	%xmm0, %xmm5
-	movl	$0, %edi
 	movsd	%xmm1, %xmm3
+	movl	$0, %edi
 	jmp	.L1
 .L2:
 	movsd	%xmm4, %xmm0
@@ -25,7 +25,7 @@ MBPixelCalc:
 	movsd	%xmm0, %xmm5
 	movsd	%xmm6, %xmm0
 	movsd	%xmm0, %xmm4
-	addl	$1, %edi
+	incl	%edi
 .L1:
 	movsd	%xmm4, %xmm0
 	movsd	%xmm0, %xmm1
