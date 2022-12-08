@@ -76,25 +76,10 @@ int main(int argc, char *argv[]) {
     // conert arguments to double
     double x=strtod(argv[1],&mem);
     double y=strtod(argv[2],&mem2);
-    // get rid of frac part, 2.65 -> 2
-
-  //  printf("arguments are %f and %f\n",x,y);
-    int xw=(int)x,yw=(int)y;
-    double xd=x>=0? (x-xw):-1*(x-xw),yd=y>=0?(y-yw):-1*(y-yw);  // getting the fraction part of the number
-     // printf("size: %d\n", sizeof(long));
-    double binOfxF= fracToBin(xd,-1,xd),binOfyF= fracToBin(yd,-1,yd); // converting the fractional part of the number to binary
-  //  long nX= calcDec(binOfxW),nY= calcDec(binOfyW);
-    long nX= trick(xw),nY= trick(yw);
-    if(binOfxF>0)
-    nX+= calcFrac(binOfxF);
-    if(binOfyF>0)
-    nY+= calcFrac(binOfyF);
-    if(xw==0&&x<0) nX=-1*nX;
-    if(yw==0&&y<0) nY=-1*nY;
 
 
-    extern int MBPixelCalc(long,long);
+    extern int MBPixelCalc(double,double);
     // printf("x: %ld y: %ld\n",nX,nY);
-    printf("MBPixelCalc() returned %d.\n", MBPixelCalc(nX,nY));
+    printf("MBPixelCalc() returned %d.\n", MBPixelCalc(x,y));
     return 0;
 }
