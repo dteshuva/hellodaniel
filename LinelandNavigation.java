@@ -276,11 +276,6 @@ public class LinelandNavigation {
    */
   // position is index+constant
   public final int solveIt() {
-      for(int i=this.constant; i>0; i--){
-          this.G.addEdge(this.constant,this.constant-i);
-          if(!this.mines[this.constant-i+this.moves])
-              this.G.addEdge(this.constant-i,this.constant-i+this.moves);
-      }
       for(int i=0; i<this.goal;i++){
           if(this.mines[i])
               continue;
