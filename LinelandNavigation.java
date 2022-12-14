@@ -216,6 +216,7 @@ public class LinelandNavigation {
   private int moves;
   private int goal;
   private int constant;
+  private boolean noWay;
   private Digraph G;
   /** Constructor.  When the constructor completes successfully, the navigator
    * is positioned at position 0.
@@ -239,6 +240,7 @@ public class LinelandNavigation {
       this.constant=m-1;
       this.moves=m;
       this.goal=g;
+      this.noWay=false;
     // fill me in!
   }
 
@@ -263,7 +265,10 @@ public class LinelandNavigation {
       if(start>=this.goal+this.moves) return;
       for(int i=start; i<=(end>=(this.goal+this.moves)?(this.goal+this.moves-1):end); i++){
           this.mines[i]=true; } //when checking for mine in a position- index in the array is actual position
+      if(end-start+1>=this.moves||end==this.moves||start==this.moves)
+          noWay=true;
   }
+
 
 
   /** Determines the minimum number of moves needed to navigate from position 0
@@ -276,6 +281,8 @@ public class LinelandNavigation {
    */
   // position is index+constant
   public final int solveIt() {
+      if(this.noWay)
+          return 0;
       for(int i=0; i<this.goal;i++){
           if(this.mines[i])
               continue;
