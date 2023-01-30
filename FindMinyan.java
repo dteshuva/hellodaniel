@@ -215,7 +215,7 @@ public class FindMinyan {
         if (pq.contains(w)) pq.decreaseKey(w, distTo[w]);
         else pq.insert(w, distTo[w]);
       }
-      else if(distTo[w] == distTo[v] + e.weight()&&edgeTo[v].to()!=edgeTo[w].from()&&edgeTo[w].to()!=edgeTo[v].from()){
+      else if(distTo[w] == distTo[v] + e.weight()){
         paths[w]+=paths[v];
       }
     }
@@ -249,6 +249,22 @@ public class FindMinyan {
       protected int numberOfPaths(int v){
         return this.paths[v];
       }
+       /**
+        * Returns a shortest path from the source vertex {@code s} to vertex {@code v}.
+        *
+        * @param  v the destination vertex
+        * @return a shortest path from the source vertex {@code s} to vertex {@code v}
+        *         as an iterable of edges, and {@code null} if no such path
+        * @throws IllegalArgumentException unless {@code 0 <= v < V}
+        */
+       public Iterable<DirectedEdge> pathTo(int v) {
+           if (!hasPathTo(v)) return null;
+           Stack<DirectedEdge> path = new Stack<>();
+           for (DirectedEdge e = edgeTo[v]; e != null; e = edgeTo[e.from()]) {
+               path.push(e);
+           }
+           return path;
+       }
   }
 
   /** Constructor: clients specify the number of cities involved in the
@@ -260,6 +276,7 @@ public class FindMinyan {
   private int nCities;
   private EdgeWeightedDigraph cities;
   private Set<Integer> minyanim;
+  private Set<Integer> shortestPaths;
   private int tripNum=0;
   private int tripDur=0;
   private boolean shortCut;
@@ -269,6 +286,7 @@ public class FindMinyan {
     this.nCities=nCities;
     this.cities=new EdgeWeightedDigraph(this.nCities);
     this.minyanim=new HashSet<>();
+    this.shortestPaths=new HashSet<>();
     this.shortCut=false;
     // fill me in!
   }
@@ -323,6 +341,7 @@ public class FindMinyan {
     Dijkstra sp2=new Dijkstra(this.cities,this.nCities);
     int[][]distances=new int[this.minyanim.size()][2];
     int c=0,min=Integer.MAX_VALUE,paths=0;
+
     for(int n : this.minyanim){
       distances[c][0]=sp.hasPathTo(n)?sp.distTo(n):0;
       if(sp.hasPathTo(n)){ // checking from minyan to goal only if
@@ -330,15 +349,35 @@ public class FindMinyan {
         if(sp2.hasPathTo(n)&&distances[c][0]+distances[c][1]<min){ //updating minimum minyan
           min=distances[c][0]+distances[c][1];   // if goal is reachable from minyan and total duration is less than the minimum
           paths=sp.numberOfPaths(n)*sp2.numberOfPaths(n);
+          this.shortestPaths=new HashSet<>();
+          this.shortestPaths.add(n);
         }
         else if(sp2.hasPathTo(n)&&distances[c][0]+distances[c][1]==min){
+            this.shortestPaths.add(n);
             paths+=sp.numberOfPaths(n)*sp2.numberOfPaths(n); }
       }
       c++;
     }
+    boolean []done=new boolean[this.nCities+1];
+     for(int n : this.shortestPaths){
+         paths-=duplicate(sp2.pathTo(n),n,this.shortestPaths,done);
+     }
       this.tripNum=paths;
       if(min<Integer.MAX_VALUE)
         this.tripDur=min;
+  }
+  private int duplicate(Iterable<DirectedEdge> path, int minyan, Set<Integer> shortestPaths,boolean[]arr){
+      int res=0;
+      //System.out.println("minyan itself: "+  minyan);
+      for(DirectedEdge n : path){
+       //  System.out.println(n.to()+" "+n.from());
+          if((n.from()!=minyan&&shortestPaths.contains(n.from()))&&!arr[n.from()]){
+            //  this.shortestPaths.remove(n.from());
+              arr[n.from()]=true;
+              res++;
+          }
+      }
+      return res;
   }
 
   /** Returns the duration of the shortest trip satisfying the FindMinyan
