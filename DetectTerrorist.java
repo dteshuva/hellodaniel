@@ -9,7 +9,7 @@ package edu.yu.da;
  * @author Avraham Leff
  */
 
-public class DetectTerrorist {
+public class DetectTerrorist extends BigOMeasurable  {
 
   /** Constructor: represents passengers to be detected as an array in which
    * the ith value is the weight of the ith passenger.  After the constructor
@@ -22,6 +22,10 @@ public class DetectTerrorist {
    */
   // 5 5 5 5 2 5 5 5 5 5
   private int res=-1;
+ private int[] dr;
+  public DetectTerrorist(){
+
+  }
   public DetectTerrorist(final int[] passengers) {
     // fill me in!
     if(passengers==null)
@@ -39,17 +43,14 @@ public class DetectTerrorist {
     if(end-start==2){
       return solveThree(passengers[start],passengers[start+1],passengers[end],start,start+1,end);
     }
-    if(end-start==3){
-      return solveFour(passengers[start],passengers[start+1],passengers[end-1], passengers[end],start,start+1,end-1,end);
-    }
-    sum1=passengers[0]+passengers[1];
-    for(int i=0; i<passengers.length-3; i+=2){
+
+    for(int i=0; i<passengers.length-3; i+=4){
+        sum1=passengers[i]+passengers[i+1];
       sum2=passengers[i+2]+passengers[i+3];
       if(sum1!=sum2)
-        return solveFour(passengers[i], passengers[i+1],passengers[i+2],passengers[i+3],i,i+1,i+2,i+3);
-      sum1=sum2;
+        return solveFour( passengers[i+1],passengers[i+2],i,i+1,i+2,i+3,sum1,sum2);
     }
-    return passengers.length-1;
+   return solveThree(passengers[end-2],passengers[end-1],passengers[end],end-2,end-1,end );
   }
 
   /*
@@ -60,7 +61,7 @@ public class DetectTerrorist {
     int sum1=a+b,sum2=b+c,sum3=a+c;
     if(sum1==sum2&&sum3==sum1)
       return -1;
-    if(sum1==sum2&&sum3>sum1)
+    if(sum3>sum1)
       return indB;
     if(sum2>sum3)
       return indA;
@@ -70,8 +71,8 @@ public class DetectTerrorist {
   Function gets 4 integers and their corresponding indices.
   Function return the index of the number which is different than the other 3
    */
-  private int solveFour(int a, int b, int c,int d,int indA,int indB,int indC,int indD){
-    int sum1=a+b,sum2=c+d,sum3=b+c;
+  private int solveFour( int b, int c,int indA,int indB,int indC,int indD,int sum1,int sum2){
+    int sum3=b+c;
     if(sum1==sum2&&sum3==sum1)
       return -1;
     if(sum3>sum1)
@@ -89,6 +90,16 @@ public class DetectTerrorist {
    */
   public int getTerrorist() {
     return res;
+  }
+
+  @Override
+ public void setup(int n){
+    this.dr=new int[n];
+    this.dr[n-1]=-5;
+ }
+  @Override
+  public void execute() {
+    int ans=detection(this.dr,0,this.dr.length-1);
   }
 
 } // DetectTerrorist
