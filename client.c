@@ -15,7 +15,8 @@ char *host;
 char *path1;
 char *path2;
 int turn;
-int clientfd;
+char *ar;
+int num;
 // Get host information (used to establish connection)
 struct addrinfo *getHostInfo(char* host, char* port) {
     int r;
@@ -74,17 +75,34 @@ void GET(int clientfd, char *host, char *port, char *path) {
 }
 void* thread(void* arg)
 {
-    char buf[BUF_SIZE];
+
+    int clientfd;
     //wait
+    printf("cmon bro!!! \n");
     sem_wait(&mutex);
     printf("\nEntered..\n");
     //critical section
-    //sleep(4);
+    printf("cmon bro!!! \n");
+    sleep(4);
     // Send a GET request to the server
+    printf("cmon bro!!! \n");
+    sem_init(&mutex, 0, 1);
+    // Establish a connection with the specified host and port
+    clientfd = establishConnection(getHostInfo(host, port));
+    printf("cmon bro!!! \n");
+    if (clientfd == -1) {
+        fprintf(stderr,
+                "[main:73] Failed to connect to: %s:%s%s \n",
+                host, port, ar );
+        return NULL;
+    }
+    printf("cmon bro!!! \n");
     GET(clientfd, host, port, turn==0?path1 : path2);
-
+    printf("cmon bro!!! \n");
+    char buf[BUF_SIZE];
     // Receive the response from the server and print it to the standard output
-    while (recv(clientfd, buf, BUF_SIZE, 0) > 0) {
+    while (recv(clientfd, &buf, BUF_SIZE, 0) > 0) {
+        printf("cmon bro!!! \n");
         fputs(buf, stdout);  // Output the data to the terminal
         memset(buf, 0, BUF_SIZE);  // Clear the buffer for the next iteration
     }
@@ -92,6 +110,8 @@ void* thread(void* arg)
     //signal
     printf("\nJust Exiting...\n");
     sem_post(&mutex);
+    close(clientfd);
+    return NULL;
 }
 
 int main(int argc, char **argv) {
@@ -101,18 +121,11 @@ int main(int argc, char **argv) {
         fprintf(stderr, "USAGE: ./httpclient <hostname> <port> <# of threads> <request path>\n");
         return 1;
     }
-    sem_init(&mutex, 0, 1);
-    // Establish a connection with the specified host and port
-    clientfd = establishConnection(getHostInfo(argv[1], argv[2]));
-    if (clientfd == -1) {
-        fprintf(stderr,
-                "[main:73] Failed to connect to: %s:%s%s \n",
-                argv[1], argv[2], argv[3]);
-        return 3;
-    }
-    pthread_t threads[atoi(argv[3])];
-    for(int i=0; i<atoi(argv[3]);i++){
-        pthread_create(&threads[i],NULL, thread,NULL);
+    num=atoi(argv[3]);
+    pthread_t threads[num];
+    ar=argv[3];
+    for(int i=0; i<num;i++){
+        pthread_create(&threads[i],NULL, thread,&mutex); // may replace last arg with NULL
         sleep(2); //optional
         if(argc==6){
             turn= turn==0?1:0;
@@ -122,7 +135,6 @@ int main(int argc, char **argv) {
         pthread_join(threads[i],NULL);
     }
     // Close the socket when it's no longer needed to release the resources associated with it and prevent leaks.
-    close(clientfd);
     sem_destroy(&mutex);
     return 0;
 }
