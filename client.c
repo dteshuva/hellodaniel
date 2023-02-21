@@ -128,16 +128,18 @@ int main(int argc, char **argv) {
     pthread_t threads[num];
     sem_init(&mutex, 0, 1);
     ar=argv[3];
-
-    for(int i=0; i<num;i++){
-        pthread_create(&threads[i],NULL, thread,NULL); // may replace last arg with NULL
-        sleep(2); //optional
-        if(argc==6){
-            turn= turn==0?1:0;
+    int x=0;
+    while(x<5) {
+        for (int i = 0; i < num; i++) {
+            pthread_create(&threads[i], NULL, thread, NULL); // may replace last arg with NULL
+            sleep(2); //optional
+            if (argc == 6) {
+                turn = turn == 0 ? 1 : 0;
+            }
         }
-    }
-    for(int i=0; i<atoi(argv[3]); i++){
-        pthread_join(threads[i],NULL);
+        for (int i = 0; i < atoi(argv[3]); i++) {
+            pthread_join(threads[i], NULL);
+        }
     }
     // Close the socket when it's no longer needed to release the resources associated with it and prevent leaks.
     sem_destroy(&mutex);
