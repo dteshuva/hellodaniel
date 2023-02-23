@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 
 #define BUF_SIZE 100
-sem_t mutex;
+sem_t *mutex ;
 char *port;
 char *host;
 char *path1;
@@ -75,43 +75,46 @@ void GET(int clientfd, char *host, char *port, char *path) {
 }
 void* thread(void* arg)
 {
+    int thread_num = *(int*)arg;
     int clientfd;
     char* path=turn==0?path1 : path2;
 
     //wait
-    sem_wait(&mutex);
-    printf("\nEntered..\n");
-    //critical section
-    //sleep(4);
-    // Send a GET request to the server
-    // Establish a connection with the specified host and port
-    clientfd = establishConnection(getHostInfo(host, port));
-    if (clientfd == -1) {
-        fprintf(stderr,
-                "[main:73] Failed to connect to: %s:%s%s \n",
-                host, port, ar );
-        return NULL;
+    while(1){
+        //printf("thread number %d\n",thread_num);
+        sem_wait(&mutex[thread_num]);
+      //  printf("\nEntered..\n");
+        //critical section
+        //sleep(4);
+        // Send a GET request to the server
+        // Establish a connection with the specified host and port
+        clientfd = establishConnection(getHostInfo(host, port));
+
+        if (clientfd == -1) {
+            fprintf(stderr,
+                    "[main:73] Failed to connect to: %s:%s%s \n",
+                    host, port, ar );
+            return NULL;
+        }
+        GET(clientfd, host, port, path);
+        sem_post(&mutex[(thread_num+1) % num]);
+        char buf[BUF_SIZE];
+        // Receive the response from the server and print it to the standard output
+        while (recv(clientfd, &buf, BUF_SIZE, 0) > 0) {
+          // fputs(buf, stdout);  // Output the data to the terminal
+            memset(buf, 0, BUF_SIZE);  // Clear the buffer for the next iteration
+        }
+
+        //signal
+        //printf("\nJust Exiting...\n");
+        sem_post(&mutex[thread_num]);
+        close(clientfd);
+        //  puts(path);
     }
-
-
-    GET(clientfd, host, port, path);
-    char buf[BUF_SIZE];
-    // Receive the response from the server and print it to the standard output
-    while (recv(clientfd, &buf, BUF_SIZE, 0) > 0) {
-        fputs(buf, stdout);  // Output the data to the terminal
-        memset(buf, 0, BUF_SIZE);  // Clear the buffer for the next iteration
-    }
-
-    //signal
-   printf("\nJust Exiting...\n");
-    sem_post(&mutex);
-    close(clientfd);
-  //  puts(path);
     return NULL;
 }
 
 int main(int argc, char **argv) {
-
     // Check if the number of command-line arguments is correct
     if (argc != 5&& argc!=6) {
         fprintf(stderr, "USAGE: ./httpclient <hostname> <port> <# of threads> <request path>\n");
@@ -124,24 +127,43 @@ int main(int argc, char **argv) {
     if(argc==6){
         path2=argv[5];
     }
-
     pthread_t threads[num];
-    sem_init(&mutex, 0, 1);
+    int thread_args[num];
+    mutex= (sem_t*) malloc(num* sizeof(sem_t));
+
+    for(int i=0; i<num; i++){
+        if(sem_init(&mutex[i], 0, 1)!=0){
+            perror("sem_init");
+            exit(EXIT_FAILURE);
+        }
+    }
     ar=argv[3];
-    int x=0;
-    while(x<5) {
         for (int i = 0; i < num; i++) {
-            pthread_create(&threads[i], NULL, thread, NULL); // may replace last arg with NULL
-            sleep(2); //optional
+            thread_args[i]=i;
+            if(pthread_create(&threads[i], NULL, thread, &thread_args[i]) != 0){
+                perror("pthread_create");
+                exit(EXIT_FAILURE);
+            }// may replace last arg with NULL
+          //  sleep(2); //optional
             if (argc == 6) {
                 turn = turn == 0 ? 1 : 0;
             }
         }
+    sem_post(&mutex[0]);
         for (int i = 0; i < atoi(argv[3]); i++) {
-            pthread_join(threads[i], NULL);
+            if(pthread_join(threads[i], NULL)!=0){
+                perror("pthread_join");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+    // Close the socket when it's no longer needed to release the resources associated with it and prevent leaks.
+    for(int i=0; i<num; i++){
+        if(sem_destroy(&mutex[i])!=0){
+            perror("sem_detsroy");
+            exit(EXIT_FAILURE);
         }
     }
-    // Close the socket when it's no longer needed to release the resources associated with it and prevent leaks.
-    sem_destroy(&mutex);
+    free(mutex);
     return 0;
 }
