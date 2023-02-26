@@ -32,7 +32,7 @@ public class ArithmeticPuzzle extends ArithmeticPuzzleBase{
         private int getValue(Character ch){
             for(int i=0; i<this.mapDigit.length; i++){
                 if(mapDigit[i]==ch)
-                    return 1;
+                    return i;
             }
             return -1;
         }
@@ -45,24 +45,28 @@ public class ArithmeticPuzzle extends ArithmeticPuzzleBase{
             }
             return sum;
         }
-    }
+    } // end of chromosome
     private class Population{
         int size;
-        List<Chromosome> pop;
+        Chromosome [] pop;
         int highestFit;
+        boolean solutionFound;
         Chromosome best;
         // creating random populations of
         Population(int populationSize){
+            this.solutionFound=false;
             this.highestFit=Integer.MAX_VALUE;
             this.size=populationSize;
             int dig;
-            this.pop=new ArrayList<>();
+            this.pop=new Chromosome[populationSize];
             Chromosome c;
-            while(pop.size()<populationSize){
-                int[]usedDigs=new int[10];
-                char[] map=new char[10];
+            int count=0;
+            while(count<populationSize){
+                int[]usedDigs=new int[10];  // count of used digits
+                char[] map=new char[10];  // mapping of digits to chars
                 for(char ch : ArithmeticPuzzle.this.allChars){
                   dig=new Random().nextInt(10);
+                  // if char is used already, re-pick a char until a not used one
                   while(usedDigs[dig]==1){
                       dig=new Random().nextInt(10);
                   }
@@ -70,141 +74,111 @@ public class ArithmeticPuzzle extends ArithmeticPuzzleBase{
                   usedDigs[dig]=1;
                 }
                 c=new Chromosome(map);
-                pop.add(c);
-                updateHighestFit(c);
+                pop[count]=c;
+                count++;
+                if(c.getFitness()==0){
+                    this.best=c;
+                    this.solutionFound=true;
+                }
             }
         }
         void mutation(GeneticAlgorithmConfig gac){
-            if(allChars.size()==10)  // may change it to be an edge case
-                return;
-            double rand = Math.random();
-            if(rand>gac.getMutationProbability())
-                return;
-            Random r=new Random();
-            int par1=r.nextInt(this.pop.size()),par2=r.nextInt(this.pop.size()); // 2 random chromosomes
-            Chromosome p1=this.pop.get(par1),p2=this.pop.get(par2);
-            mutationHelper(p1,r);
-            mutationHelper(p2,r);
-
-        }
-        private void mutationHelper(Chromosome c,Random r){
-            char [] arr=c.getMap();
-            int ind=r.nextInt(allChars.size());
-            int dig=r.nextInt(10);
-            while(Character.isLetter(arr[dig]))
-                dig=r.nextInt(10);  // getting a digit that isn't already in the chromosome
-            int i=0;
-            for(char ch : allChars){
-                if(ind==i){
-                    c.setMap(dig,ch);
-                    break;
-                }
-                i++;
+            double rand;
+            for(Chromosome c : this.pop){
+                rand = Math.random();
+                if(rand>gac.getMutationProbability())
+                    continue;
+                Random r=new Random();
+                int par1=r.nextInt(10),par2=r.nextInt(10); // 2 random genes
+                char[] genes=c.getMap();
+                c.setMap(par1, genes[par2]);
+                c.setMap(par2, genes[par1]);
+                c.reCalculateFitness();
+                if(c.getFitness()==0)
+                    this.solutionFound=true;
+                    this.best=c;
             }
-            c.reCalculateFitness();
-            updateHighestFit(c);
         }
         void cross(GeneticAlgorithmConfig gac){
-            double rand = Math.random();
-            if(rand>gac.getCrossoverProbability()){
-                this.pop= gac.getSelectionType()== GeneticAlgorithmConfig.SelectionType.TOURNAMENT ? this.tournament(false) : this.roulette(false);
-            }
-            else{
-                this.pop= gac.getSelectionType()== GeneticAlgorithmConfig.SelectionType.TOURNAMENT ? this.tournament(true) : this.roulette(true);
-                Random r=new Random();
-                int par1=r.nextInt(pop.size()),par2=r.nextInt(pop.size()),ind;
-                while(par1==par2){
-                    par1=r.nextInt(pop.size()); //// random different chromosomes
-                }
-                Set<Character> arr1,arr2;
-                Chromosome p1,p2;
-                boolean invalid1,invalid2;
-                /*
-                Until population is full, every time get 2 random chromosomes and a random position and create out of it 2 new
-                chromosomes,then add the ones which are valid- no duplicate digits
-                 */
-                while(pop.size()<this.size) {
-                    p1 = this.pop.get(par1);
-                    p2 = this.pop.get(par2);
-                    ind=r.nextInt(10);
-                    char[] xMap = p1.getMap(), yMap = p2.getMap(), mod1 = new char[10], mod2 = new char[10];
-                    Set<Character> xSet = new HashSet<>();
-                    for(int i=0; i<10; i++)
-                        if(Character.isLetter(xMap[i]))
-                            xSet.add(xMap[i]);
-                    arr1 = new HashSet<>();
-                    arr2 = new HashSet<>();
-                    invalid1 = false;
-                    invalid2 = false;
-                    /*
-                    after picking a random index, up do that index, add to mod1 p2's mapping pair and to mod2 p1's pairs
-                    after the index do the opposite
-                     */
-                    for(int i=0; i<10; i++){
-                        if(i<=ind){
-                            mod1[i]=yMap[i];
-                            mod2[i]=xMap[i];
-                            if(Character.isLetter(yMap[i])&&!arr1.add(yMap[i]))
-                                invalid1=true;
-                            if(Character.isLetter(xMap[i])&&!arr2.add(xMap[i]))
-                                invalid2=true;
-                        }
-                        else{
-                            mod1[i]=xMap[i];
-                            mod2[i]=yMap[i];
-                            if(Character.isLetter(xMap[i])&&!arr1.add(xMap[i]))
-                                invalid1=true;
-                            if(Character.isLetter(yMap[i])&&!arr2.add(yMap[i]))
-                                invalid2=true;
-                        }
-                        if(invalid1&&invalid2)
-                            break;
-                    }
-                    Chromosome c;
-                    if (!invalid1&&arr1.containsAll(allChars)){
-                        c = new Chromosome(mod1);
-                        this.pop.add(c);
-                        updateHighestFit(c);
-                    }
-                    if (!invalid2&&arr2.containsAll(allChars)){
-                        c = new Chromosome(mod2);
-                        this.pop.add(c);
-                        updateHighestFit(c);
-                    }
-                    par1=r.nextInt(pop.size());
-                    par2=r.nextInt(pop.size());
-                    while(par1==par2){
-                        par1=r.nextInt(pop.size());
-                    }
-                } // end of while
+            double rand;
+            for(int i=0; i<this.size-1; i+=2){
+                rand = Math.random();
+                if(rand>gac.getMutationProbability())
+                    continue;
+                Chromosome [] children = crossover(this.pop[i], this.pop[i+1]);
+                this.pop[i]=children[0];
+                this.pop[i+1]=children[1];
             }
         }
-        List<Chromosome> tournament(boolean isCross){
-            List<Chromosome> selected = new ArrayList<>();
-            int num= isCross==false ? this.size : this.size / 2;
-            Chromosome bestFit=null;
-            for (int i = 0; i < num; i++) {
+        private Chromosome[] crossover(Chromosome parent1, Chromosome parent2) {
+            int len = 10;
+            Random r = new Random();
+            int crossoverPoint = r.nextInt(8) + 1;
+            Chromosome [] children = new Chromosome[2];
+            char[] childGenes = new char[len];
+            char[] childGenes2= new char[len];
+            // Copy genes before the crossover point from parent1 to child
+            for (int i = 0; i < crossoverPoint; i++) {
+                childGenes[i] = parent1.getMap()[i];
+                childGenes2[i] = parent2.getMap()[i];
+            }
+
+            // Find the digits in parent2 that are not yet in the child
+            Set<Character> usedDigits = new HashSet<>();
+            Set<Character> usedDigits2 = new HashSet<>();
+            for (int i = 0; i < crossoverPoint; i++) {
+                usedDigits.add(childGenes[i]);
+                usedDigits2.add(childGenes2[i]);
+            }
+
+            // Copy the remaining digits from parent2 to child in the order they appear
+            int childIndex = crossoverPoint;
+            int child2Index = crossoverPoint;
+            for (int i = 0; i < len; i++) {
+                char digit = parent2.getMap()[i];
+                char digit2 = parent1.getMap()[i];
+                if (!usedDigits.contains(digit)) {
+                    childGenes[childIndex] = digit;
+                    childIndex++;
+                }
+                if(!usedDigits2.contains(digit2)){
+                    childGenes2[child2Index] = digit2;
+                    child2Index++;
+                }
+            }
+            children[0]=new Chromosome(childGenes);
+            children[1]=new Chromosome(childGenes2);
+            if(children[0].getFitness()==0 ) {
+                this.solutionFound = true;
+                this.best=children[0];
+            }
+            if(children[1].getFitness()==0){
+                this.solutionFound=true;
+                this.best=children[1];
+            }
+            return children;
+        }
+
+        void tournament(){
+            Chromosome [] selected = new Chromosome[this.size];
+            for (int i = 0; i < this.size; i++) {
                 Chromosome best = null;
                 for (int j = 0; j < 3; j++) {
                     int index = (int) (Math.random() * size);
-                    Chromosome competitor = pop.get(index);
+                    Chromosome competitor = pop[index];
                     if (best == null || competitor.getFitness() < best.getFitness()) {
                         best = competitor;
                     }
                 }
-                if(bestFit == null || best.getFitness() < bestFit.getFitness()){
-                    bestFit = best;
-                }
-                selected.add(best);
+
+                selected[i]=best;
             }
-            this.best = bestFit;
-            this.highestFit = best.getFitness();
-            return selected;
+            this.pop=selected;
         }
 
-        List<Chromosome> roulette(boolean isCross) {
+        void roulette() {
             double[] probabilities = new double[this.size];
-            List<Chromosome> selected = new ArrayList<>();
+            Chromosome [] selected = new Chromosome[this.size];
             Chromosome best = null, temp;
             double inverseFitnessSum = 0;
 
@@ -215,25 +189,16 @@ public class ArithmeticPuzzle extends ArithmeticPuzzleBase{
 
             // Compute the probabilities based on the inverse fitness values
             for (int i = 0; i < this.size; i++) {
-                double inverseFitness = 1.0 / this.pop.get(i).getFitness();
+                double inverseFitness = 1.0 / this.pop[i].getFitness();
                 probabilities[i] = inverseFitness / inverseFitnessSum;
             }
 
-            int num = isCross ? this.size / 2 : this.size;
-            int minFit = Integer.MAX_VALUE;
-
-            for (int i = 0; i < num; i++) {
+            for (int i = 0; i < this.size; i++) {
                 temp = rouletteHelper(probabilities);
-                selected.add(temp);
-                if (temp.getFitness() < minFit) {
-                    minFit = temp.getFitness();
-                    best = temp;
-                }
+                selected[i] = temp;
             }
 
-            this.best = best;
-            this.highestFit = minFit;
-            return selected;
+            this.pop=selected;
         }
 
         private Chromosome rouletteHelper(double[] probabilities) {
@@ -243,27 +208,18 @@ public class ArithmeticPuzzle extends ArithmeticPuzzleBase{
             for (int i = 0; i < this.size; i++) {
                 slice += probabilities[i];
                 if (rand <= slice) {
-                    return this.pop.get(i);
+                    return this.pop[i];
                 }
             }
 
             // Fallback if the loop above did not return a chromosome
-            return this.pop.get(this.size - 1);
+            return this.pop[this.size-1];
         }
 
-        int getHighestFit(){
-            return this.highestFit;
-        }
         Chromosome getBest(){
             return this.best;
         }
 
-        private void updateHighestFit(Chromosome c){
-            if(c.getFitness()>this.highestFit){
-                this.highestFit=c.getFitness();
-                this.best=c;
-            }
-        }
     }
     private class Solution implements SolutionI{
         private List<Character> solution;
@@ -359,12 +315,18 @@ public class ArithmeticPuzzle extends ArithmeticPuzzleBase{
             s=new Solution(sol, 0, 0, 0, 1);
             return s;
         }
-        while(count< gac.getMaxGenerations()&&p.getHighestFit()!=0){ // may change highestfit to a method
+        while(count< gac.getMaxGenerations() && !p.solutionFound){ // may change highestfit to a method
+            if(gac.getSelectionType()== GeneticAlgorithmConfig.SelectionType.ROULETTE){
+                p.roulette();
+            }
+            else{
+                p.tournament();
+            }
             p.cross(gac);
             p.mutation(gac);
             count++;
         }
-        if(p.getHighestFit()!=0){
+        if(!p.solutionFound){
             s=new Solution(sol, -1, -1, -1, 0);
             return s;
         }
@@ -373,7 +335,7 @@ public class ArithmeticPuzzle extends ArithmeticPuzzleBase{
            sol.add(' ');
         for(int i=0; i< map.length; i++){
             if(Character.isLetter(map[i]))
-                sol.add(i , map[i]);
+                sol.set(i , map[i]);
         }
         s=new Solution(sol, p.getBest().getAug(), p.getBest().getAdd(), p.getBest().getSum(), count);
         return s;
