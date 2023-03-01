@@ -75,6 +75,7 @@ void GET(int clientfd, char *host, char *port, char *path) {
     // send the GET request using the connected socket
     send(clientfd, req, strlen(req), 0);
 }
+// thread method for FIFO
 void* thread(void* arg)
 {
     int thread_num = *(int*)arg;
@@ -117,18 +118,43 @@ void* thread(void* arg)
 }
 void* task(void* arg) {
     int x=0; //switch
+    int clientfd;
+    char* path=path1;
     while (1) {
         // Send request for file
         printf("Thread %ld sending request\n", (long)arg);
+        // Send a GET request to the server
+        // Establish a connection with the specified host and port
+        clientfd = establishConnection(getHostInfo(host, port));
+
+        if (clientfd == -1) {
+            fprintf(stderr,"[main:73] Failed to connect to: %s:%s%s \n",host, port, ar );
+            return NULL;
+        }
+        GET(clientfd, host, port, path);
 
         // Wait for barrier to synchronize with other threads
         pthread_barrier_wait(&barrier);
 
         // Wait for response
         printf("Thread %ld waiting for response\n", (long)arg);
+        char buf[BUF_SIZE];
+        // Receive the response from the server and print it to the standard output
+        while (recv(clientfd, &buf, BUF_SIZE, 0) > 0) {
+            // fputs(buf, stdout);  // Output the data to the terminal
+            memset(buf, 0, BUF_SIZE);  // Clear the buffer for the next iteration
+        }
+        //signal
+        //printf("\nJust Exiting...\n");
+        close(clientfd);
+        //  puts(path);
 
         // Wait for barrier to synchronize with other threads
         pthread_barrier_wait(&barrier);
+        if(areTwo == 1){
+            x= x==0 ? 1 : 0;
+            path= x==0 ? path1 : path2;
+        }
     }
 
     return NULL;
@@ -171,6 +197,7 @@ int main(int argc, char **argv) {
     }
         for (int i = 0; i < num; i++) {
             thread_args[i]=i;
+            // if FIFO, perform "thread" else perform task
             if(pthread_create(&threads[i], NULL, version==0 ? thread : task, &thread_args[i]) != 0){
                 perror("pthread_create");
                 exit(EXIT_FAILURE);
