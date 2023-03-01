@@ -122,7 +122,7 @@ void* task(void* arg) {
     char* path=path1;
     while (1) {
         // Send request for file
-        printf("Thread %ld sending request\n", (long)arg);
+
         // Send a GET request to the server
         // Establish a connection with the specified host and port
         clientfd = establishConnection(getHostInfo(host, port));
@@ -134,10 +134,10 @@ void* task(void* arg) {
         GET(clientfd, host, port, path);
 
         // Wait for barrier to synchronize with other threads
-        pthread_barrier_wait(&barrier);
+       // pthread_barrier_wait(&barrier);
 
         // Wait for response
-        printf("Thread %ld waiting for response\n", (long)arg);
+
         char buf[BUF_SIZE];
         // Receive the response from the server and print it to the standard output
         while (recv(clientfd, &buf, BUF_SIZE, 0) > 0) {
@@ -148,7 +148,6 @@ void* task(void* arg) {
         //printf("\nJust Exiting...\n");
         close(clientfd);
         //  puts(path);
-
         // Wait for barrier to synchronize with other threads
         pthread_barrier_wait(&barrier);
         if(areTwo == 1){
@@ -217,7 +216,7 @@ int main(int argc, char **argv) {
             }
         }
     if(version == 1){
-        if(pthread_attr_destroy(&barrier) != 0){
+        if(pthread_barrier_destroy(&barrier) != 0){
             perror("pthread_barrier_destroy");
             exit(EXIT_FAILURE);
         }
