@@ -17,6 +17,8 @@ char *path2;
 int turn;
 char *ar;
 int num;
+int areTwo=0;
+pthread_barrier_t barrier;
 // Get host information (used to establish connection)
 struct addrinfo *getHostInfo(char* host, char* port) {
     int r;
@@ -113,57 +115,95 @@ void* thread(void* arg)
     }
     return NULL;
 }
+void* task(void* arg) {
+    int x=0; //switch
+    while (1) {
+        // Send request for file
+        printf("Thread %ld sending request\n", (long)arg);
 
+        // Wait for barrier to synchronize with other threads
+        pthread_barrier_wait(&barrier);
+
+        // Wait for response
+        printf("Thread %ld waiting for response\n", (long)arg);
+
+        // Wait for barrier to synchronize with other threads
+        pthread_barrier_wait(&barrier);
+    }
+
+    return NULL;
+}
 int main(int argc, char **argv) {
+    int version;
     // Check if the number of command-line arguments is correct
-    if (argc != 5&& argc!=6) {
+    if (argc != 6&& argc!=7) {
         fprintf(stderr, "USAGE: ./httpclient <hostname> <port> <# of threads> <request path>\n");
         return 1;
     }
     num=atoi(argv[3]);
     host=argv[1];
     port=argv[2];
-    path1=argv[4];
-    if(argc==6){
-        path2=argv[5];
+    version= strcmp(argv[4],"FIFO")==0 ? 0 : 1;
+    path1=argv[5];
+    ar=argv[3];
+    if(argc==7){
+        areTwo=1;
+        path2=argv[6];
     }
     pthread_t threads[num];
     int thread_args[num];
-    mutex= (sem_t*) malloc(num* sizeof(sem_t));
-
-    for(int i=0; i<num; i++){
-        if(sem_init(&mutex[i], 0, 1)!=0){
-            perror("sem_init");
+    // FIFO version- initializing mutex
+    if(version==0) {
+        mutex = (sem_t *) malloc(num * sizeof(sem_t));
+        for (int i = 0; i < num; i++) {
+            if (sem_init(&mutex[i], 0, 1) != 0) {
+                perror("sem_init");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    // CONCUR- initialize a barrier
+    else{
+        if (pthread_barrier_init(&barrier, NULL, num) != 0){
+            perror("pthred_barrier_init");
             exit(EXIT_FAILURE);
         }
     }
-    ar=argv[3];
         for (int i = 0; i < num; i++) {
             thread_args[i]=i;
-            if(pthread_create(&threads[i], NULL, thread, &thread_args[i]) != 0){
+            if(pthread_create(&threads[i], NULL, version==0 ? thread : task, &thread_args[i]) != 0){
                 perror("pthread_create");
                 exit(EXIT_FAILURE);
-            }// may replace last arg with NULL
+            }
           //  sleep(2); //optional
-            if (argc == 6) {
+            if (argc == 6 && version == 0) {
                 turn = turn == 0 ? 1 : 0;
             }
         }
-    sem_post(&mutex[0]);
-        for (int i = 0; i < atoi(argv[3]); i++) {
+    if(version == 0){
+        sem_post(&mutex[0]);
+    }
+        for (int i = 0; i < num; i++) {
             if(pthread_join(threads[i], NULL)!=0){
                 perror("pthread_join");
                 exit(EXIT_FAILURE);
             }
         }
-
-    // Close the socket when it's no longer needed to release the resources associated with it and prevent leaks.
-    for(int i=0; i<num; i++){
-        if(sem_destroy(&mutex[i])!=0){
-            perror("sem_detsroy");
+    if(version == 1){
+        if(pthread_attr_destroy(&barrier) != 0){
+            perror("pthread_barrier_destroy");
             exit(EXIT_FAILURE);
         }
     }
-    free(mutex);
+    else {
+        // Close the socket when it's no longer needed to release the resources associated with it and prevent leaks.
+        for (int i = 0; i < num; i++) {
+            if (sem_destroy(&mutex[i]) != 0) {
+                perror("sem_detsroy");
+                exit(EXIT_FAILURE);
+            }
+        }
+        free(mutex);
+    }
     return 0;
 }
