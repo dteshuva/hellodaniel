@@ -30,7 +30,10 @@ void* get_physical_address(void** page_table, uint32_t virtual_addr,char* locati
     }
     physical_addr =(uint32_t*)physical_addr + (virtual_addr % page_size); // Add offset to physical address
     if(used[page_num] != 1){
-        printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,location);
+        char* message=location;
+        if(page_num == 0)
+            message="0x0000000000000000";
+        printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,message);
         addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
@@ -63,7 +66,10 @@ void writebyte(void** page_table, char* location, char* value) {
     physical_addr += virtual_addr % page_size; // Add offset to physical address
     *physical_addr = byte_value; // Write byte to physical address
     if(used[page_num] != 1){
-        printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,location);
+        char* message=location;
+        if(page_num == 0)
+            message="0x0000000000000000";
+        printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,message);
         addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
