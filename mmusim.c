@@ -21,6 +21,7 @@ uint32_t page_num = 0; // page number extracted from virtual address
 // Function to get the physical address from the virtual address
 void* get_physical_address(void** page_table, uint32_t virtual_addr,char* location) {
     uint32_t page_num = virtual_addr / page_size; // Extract page number from virtual address
+    uint32_t pageAdd= page_num*page_size;
     if(page_num >= pmpc){
         return NULL;
     }
@@ -30,10 +31,10 @@ void* get_physical_address(void** page_table, uint32_t virtual_addr,char* locati
     }
     physical_addr =(uint32_t*)physical_addr + (virtual_addr % page_size); // Add offset to physical address
     if(used[page_num] != 1){
-        char* message=location;
-        if(page_num == 0)
-            message="0x0000000000000000";
-        printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,message);
+        if(page_num == 0){
+            printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000000\n",(unsigned long long)physical_addr);
+        }
+        else printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000%x\n",(unsigned long long)physical_addr,pageAdd);
         addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
@@ -56,6 +57,7 @@ void readAdd(void **page_table,uint32_t virAdd,char* location){
 void writebyte(void** page_table, char* location, char* value) {
     uint32_t virtual_addr = (uint32_t)strtoul(location, NULL, 16); // Convert location to integer
     uint32_t page_num = virtual_addr / page_size; // Extract page number from virtual address
+    uint32_t pageAdd= page_num*page_size;
     if(page_num >= pmpc){
         printf("writebyte: segmentation fault\n");
         return;
@@ -66,10 +68,10 @@ void writebyte(void** page_table, char* location, char* value) {
     physical_addr += virtual_addr % page_size; // Add offset to physical address
     *physical_addr = byte_value; // Write byte to physical address
     if(used[page_num] != 1){
-        char* message=location;
-        if(page_num == 0)
-            message="0x0000000000000000";
-        printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,message);
+        if(page_num == 0){
+            printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000000\n",(unsigned long long)physical_addr);
+        }
+        else printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000%x\n",(unsigned long long)physical_addr,pageAdd);
         addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
