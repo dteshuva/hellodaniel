@@ -1,10 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <unistd.h>
 #include <string.h>
-#include <math.h>
-#include <stdbool.h>
+
 
 // readbyte 0xFF00AA00BB00CC00
 // readbyte 0x0000000000000020
@@ -17,7 +15,6 @@ int page_size;
 int vmpc;  // number of virtual pages of memory
 int pmpc;  // number of physical pages of memory
 int * used;
-char ** vals;
 unsigned long long * addresses;
 uint32_t virtual_addr = 0x00; // virtual address to be translated
 uint32_t page_num = 0; // page number extracted from virtual address
@@ -32,9 +29,9 @@ void* get_physical_address(void** page_table, uint32_t virtual_addr,char* locati
         return NULL; // Page not allocated, return NULL
     }
     physical_addr =(uint32_t*)physical_addr + (virtual_addr % page_size); // Add offset to physical address
-   if(used[page_num] != 1){
-       printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,location);
-       addresses[page_num]=(unsigned long long)physical_addr;
+    if(used[page_num] != 1){
+        printf("created physical page at 0x%llx, mapped to virtual page at %s\n",(unsigned long long)physical_addr,location);
+        addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
     return physical_addr;
@@ -46,7 +43,11 @@ void readAdd(void **page_table,uint32_t virAdd,char* location){
         return;
     }
     uint32_t value = *(uint32_t*)physical_addr; // Read byte from physical address
-    printf("readbyte: VM location %s, which is PM location 0x%p, contains value 0x%x\n",
+    if(value == 0){
+        printf("readbyte: VM location %s, which is PM location 0x%p, contains value 0x00\n",location, physical_addr);
+        return;
+    }
+    printf("readbyte: VM location %s, which is PM location 0x%p, contains value 0x%X\n",
            location, physical_addr, value);
 }
 void writebyte(void** page_table, char* location, char* value) {
@@ -66,7 +67,6 @@ void writebyte(void** page_table, char* location, char* value) {
         addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
-  //  vals[page_num]=value;
     printf("writebyte: VM location %s, which is PM location 0x%llx, now contains value %s\n", location, (unsigned long long)physical_addr, value);
 }
 int main( int c,char **argv) {
@@ -74,7 +74,7 @@ int main( int c,char **argv) {
 
     page_size = atoi(argv[1]);
     if ((page_size <= 0) || ((page_size & (page_size - 1)) != 0)) {
-        perror("error: pagesize must be power of 2");
+        printf("error: pagesize must be power of 2\n");
         exit(EXIT_FAILURE);
     }
 
@@ -83,16 +83,14 @@ int main( int c,char **argv) {
     void *page_table[pmpc]; // array to store physical pages
     used= malloc(pmpc);
     addresses= malloc(pmpc);
-   // vals= malloc(pmpc);
     if (pmpc < vmpc) {
-        perror("error: pmpc must be larger than or equal to vmpc");
+        printf("error: pmpc must be larger than or equal to vmpc\n");
         exit(EXIT_FAILURE);
     }
 
 
     // create page table with alignment
     for (int i = 0; i < pmpc; i++) {
-      //  vals[i]="0x00";
         int ret = posix_memalign(&page_table[i], page_size, page_size * pmpc);
         if (ret != 0) {
             printf("Error: Failed to allocate memory for physical page %d\n", i);
