@@ -21,7 +21,7 @@ uint32_t page_num = 0; // page number extracted from virtual address
 // Function to get the physical address from the virtual address
 void* get_physical_address(void** page_table, uint32_t virtual_addr,char* location) {
     uint32_t page_num = virtual_addr / page_size; // Extract page number from virtual address
-    uint32_t pageAdd= page_num*page_size;
+    uint32_t pageAdd = page_num*page_size;
     if(page_num >= pmpc){
         return NULL;
     }
@@ -31,10 +31,7 @@ void* get_physical_address(void** page_table, uint32_t virtual_addr,char* locati
     }
     physical_addr =(uint32_t*)physical_addr + (virtual_addr % page_size); // Add offset to physical address
     if(used[page_num] != 1){
-        if(page_num == 0){
-            printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000000\n",(unsigned long long)physical_addr);
-        }
-        else printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000%x\n",(unsigned long long)physical_addr,pageAdd);
+        printf("created physical page at 0x%llX, mapped to virtual page at 0x%016llX\n", (unsigned long long)physical_addr, (unsigned long long)pageAdd);
         addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
@@ -47,12 +44,9 @@ void readAdd(void **page_table,uint32_t virAdd,char* location){
         return;
     }
     uint32_t value = *(uint32_t*)physical_addr; // Read byte from physical address
-    if(value == 0){
-        printf("readbyte: VM location %s, which is PM location 0x%p, contains value 0x00\n",location, physical_addr);
-        return;
-    }
-    printf("readbyte: VM location %s, which is PM location 0x%p, contains value 0x%X\n",
-           location, physical_addr, value);
+    printf("readbyte: VM location %s, which is PM location 0x%llX, contains value 0x%02X\n",
+           location, (unsigned long long)physical_addr, value);
+
 }
 void writebyte(void** page_table, char* location, char* value) {
     uint32_t virtual_addr = (uint32_t)strtoul(location, NULL, 16); // Convert location to integer
@@ -68,14 +62,11 @@ void writebyte(void** page_table, char* location, char* value) {
     physical_addr += virtual_addr % page_size; // Add offset to physical address
     *physical_addr = byte_value; // Write byte to physical address
     if(used[page_num] != 1){
-        if(page_num == 0){
-            printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000000\n",(unsigned long long)physical_addr);
-        }
-        else printf("created physical page at 0x%llx, mapped to virtual page at 0x0000000000000%x\n",(unsigned long long)physical_addr,pageAdd);
+        printf("created physical page at 0x%llX, mapped to virtual page at 0x%016llX\n", (unsigned long long)physical_addr, (unsigned long long)pageAdd);
         addresses[page_num]=(unsigned long long)physical_addr;
     }
     used[page_num]=1;
-    printf("writebyte: VM location %s, which is PM location 0x%llx, now contains value %s\n", location, (unsigned long long)physical_addr, value);
+    printf("writebyte: VM location %s, which is PM location 0x%llX, now contains value %s\n", location, (unsigned long long)physical_addr, value);
 }
 int main( int c,char **argv) {
 
@@ -143,7 +134,7 @@ int main( int c,char **argv) {
     // free physical pages in order they were allocated
     for (int i = 0; i < pmpc; i++) {
         if(used[i]==1) {
-            printf("physical page at 0x%llx destroyed\n", addresses[i]);
+            printf("physical page at 0x%llX destroyed\n", addresses[i]);
         }
         free(page_table[i]);
     }
