@@ -13,14 +13,15 @@ public class BTreeImpl<Key extends Comparable<Key>,Value> implements BTree<Key,V
         private Node leftMostExternalNode;
         private int height; //height of the B-tree
         private int n; //number of key-value pairs
-        private PersistenceManager<Key, Value> pm;
+        private PersistenceManager<Key, Value> manager;
+        private Value v;
 
         public BTreeImpl() {
             this.root = new Node(0);
             this.leftMostExternalNode = this.root;
             this.height = 0;
             this.n = 0;
-            this.pm = null;
+            this.manager = null;
         }
         private static final class Node
         {
@@ -70,27 +71,40 @@ public class BTreeImpl<Key extends Comparable<Key>,Value> implements BTree<Key,V
     
     public Value get(Key k) {
         if (k == null) {
-            throw new IllegalArgumentException("argument to get() is null");
+            throw new IllegalArgumentException();
         }
         Entry entry = this.get(this.root, k, this.height);
         if(entry != null) {
-            if (entry.val != null) {
+            if (entry.val != null &&entry.val!=this.v) {
+                this.deleteFile(k);  //will only delete a file if was written to disk previously- optional
                 return (Value) entry.val;
              } else {
-            if(entry.onMemory==true)
-            return null;
-            Value val = null;
-            try {
-                val = this.pm.deserialize(k);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+                if(entry.onMemory==true){
+                    return null;}
+                Value val = null;
+            if(entry.val==this.v){
+                try {
+                    val = this.manager.deserialize(k);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                 }
+                 if(val!=null)
+                    entry.setStatus(true);
             entry.val = val;
+           this.deleteFile(k);
             return (Value) val;
             }
          }
 		return null;
 
+    }
+    private void deleteFile(Key k){
+        try {
+            this.manager.delete(k);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private Entry get(Node currentNode, Key key, int height)
@@ -151,7 +165,7 @@ public class BTreeImpl<Key extends Comparable<Key>,Value> implements BTree<Key,V
                 existEntry.val =v;
                 if(existEntry.onMemory==false){
                     existEntry.setStatus(true);
-                return this.pm.deserialize((Key) existEntry.key); }
+                return this.manager.deserialize((Key) existEntry.key); }
                 return null;
              } catch (IOException e) {
                 e.printStackTrace();
@@ -307,13 +321,14 @@ public class BTreeImpl<Key extends Comparable<Key>,Value> implements BTree<Key,V
         if(entry.onMemory==false){
             return;
         }
-        entry.setStatus(false);
-        pm.serialize(k,val);
-        put(k, val);
+        manager.serialize(k,val);
+      //  put(k, val);
+      put(k,this.v);
+      entry.setStatus(false);
 
     }
     public void setPersistenceManager(PersistenceManager<Key,Value> pm) {
-        this.pm = pm;
+        this.manager = pm;
     }
 
 }
