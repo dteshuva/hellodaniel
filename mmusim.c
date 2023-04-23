@@ -1,75 +1,91 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
-
-// readbyte 0xFF00AA00BB00CC00
+/*
+ * // readbyte 0xFF00AA00BB00CC00
 // readbyte 0x0000000000000020
 //readbyte 0x0000000000000021
 // writebyte 0x0000000000000021 0xAC
 // readbyte 0x0000000000000021
 // writebyte 0x0000000000000021 0xAC
 // writebyte 0x000000000000080A 0xFF
+ */
+int vmpc;
+int pmpc;
 int page_size;
-int vmpc;  // number of virtual pages of memory
-int pmpc;  // number of physical pages of memory
-int * used;
-unsigned long long * addresses;
-uint32_t virtual_addr = 0x00; // virtual address to be translated
-uint32_t page_num = 0; // page number extracted from virtual address
-// Function to get the physical address from the virtual address
-void* get_physical_address(void** page_table, uint32_t virtual_addr,char* location) {
-    uint32_t page_num = virtual_addr / page_size; // Extract page number from virtual address
-    uint32_t pageAdd = page_num*page_size;
-    if(page_num >= pmpc){
-        return NULL;
-    }
-    void* physical_addr = page_table[page_num]; // Get corresponding physical page
-    if (physical_addr == NULL) {
-        return NULL; // Page not allocated, return NULL
-    }
-    physical_addr =(uint32_t*)physical_addr + (virtual_addr % page_size); // Add offset to physical address
-    if(used[page_num] != 1){
-        printf("created physical page at 0x%llX, mapped to virtual page at 0x%016llX\n", (unsigned long long)physical_addr, (unsigned long long)pageAdd);
-        addresses[page_num]=(unsigned long long)physical_addr;
-    }
-    used[page_num]=1;
-    return physical_addr;
-}
-void readAdd(void **page_table,uint32_t virAdd,char* location){
-    void* physical_addr = get_physical_address(page_table, virAdd,location);
-    if (physical_addr == NULL) {
-        printf("readbyte: segmentation fault\n");
-        return;
-    }
-    uint32_t value = *(uint32_t*)physical_addr; // Read byte from physical address
-    printf("readbyte: VM location %s, which is PM location 0x%llX, contains value 0x%02X\n",
-           location, (unsigned long long)physical_addr, value);
+uint64_t *diskAddresses;
+uint64_t *shadowAddresses;
+int *isDirty;
 
-}
-void writebyte(void** page_table, char* location, char* value) {
-    uint32_t virtual_addr = (uint32_t)strtoul(location, NULL, 16); // Convert location to integer
-    uint32_t page_num = virtual_addr / page_size; // Extract page number from virtual address
-    uint32_t pageAdd= page_num*page_size;
-    if(page_num >= pmpc){
-        printf("writebyte: segmentation fault\n");
+int disk_page_count = 100;
+int current_disk_page = 0;
+int current_physical_page = 0;
+
+
+uint64_t* virtualAddresses;
+uint64_t* physicalAddresses;
+
+
+void accessMemory(int status) {
+    uint64_t val = 0;
+    uint64_t loc;
+
+    if (!status) {
+        scanf("%lx", &loc);
+    } else {
+        scanf("%lx %lx", &loc, &val);
+    }
+
+    if (loc >= vmpc * page_size) {
+        printf(status ? "writebyte: segmentation fault\n" : "readbyte: segmentation fault\n");
         return;
     }
 
-    uint32_t byte_value = (uint32_t)strtoul(value, NULL, 16); // Convert value to integer byte
-    uint32_t* physical_addr = (uint32_t*)page_table[page_num]; // Get corresponding physical page
-    physical_addr += virtual_addr % page_size; // Add offset to physical address
-    *physical_addr = byte_value; // Write byte to physical address
-    if(used[page_num] != 1){
-        printf("created physical page at 0x%llX, mapped to virtual page at 0x%016llX\n", (unsigned long long)physical_addr, (unsigned long long)pageAdd);
-        addresses[page_num]=(unsigned long long)physical_addr;
-    }
-    used[page_num]=1;
-    printf("writebyte: VM location %s, which is PM location 0x%llX, now contains value %s\n", location, (unsigned long long)physical_addr, value);
-}
-int main( int c,char **argv) {
+    uint64_t vpn = loc / page_size;
 
+    if(physicalAddresses[vpn]==0){
+        uint64_t ppn = physicalAddresses[vpn];
+        posix_memalign((void **)&ppn, page_size, page_size);
+        memset((void *)ppn, 0, page_size);
+        virtualAddresses[vpn] = vpn * page_size;
+        physicalAddresses[vpn] = ppn;
+        printf("created physical page at 0x%016lX, "
+               "mapped to virtual page at 0x%016lX\n",
+               ppn,
+               virtualAddresses[vpn]);
+    }
+
+    uint64_t physicalAddress = physicalAddresses[vpn] + (loc % page_size);
+
+    if (!status) {
+        printf("readbyte: VM location 0x%016lX, which is PM location 0x%016lX, contains value 0x%02X\n", loc, physicalAddress, *((uint8_t *)physicalAddress));
+    } else {
+        *((uint8_t *)physicalAddress) = (uint8_t)val;
+        printf("writebyte: VM location 0x%016lX, which is PM location 0x%016lX, now contains value 0x%02lX\n", loc, physicalAddress, val);
+    }
+}
+void evict_physical_page(uint64_t vpn) {
+    uint64_t ppn = physicalAddresses[vpn];
+    uint64_t shadow = shadowAddresses[vpn];
+
+    if (isDirty[vpn]) {
+        memcpy((void *)diskAddresses[shadow], (void *)ppn, page_size);
+        printf("physical page at 0x%016lX, which corresponds to virtual page 0x%016lX, is evicted and dirty. Copied to disc at 0x%016lX and removed from physical memory.\n", ppn, virtualAddresses[vpn], diskAddresses[shadow]);
+    } else {
+        printf("physical page at 0x%016lX, which corresponds to virtual page 0x%016lX, is evicted and not dirty. Removed from physical memory.\n", ppn, virtualAddresses[vpn]);
+    }
+
+    free((void *)ppn);
+    physicalAddresses[vpn] = 0;
+}
+
+
+int main(int argc, char *argv[]) {
+    if (argc != 4) {
+        fprintf(stderr, "usage: mmusim [pagesize] [vmpc] [pmpc]\n");
+        return 1;
+    }
 
     page_size = atoi(argv[1]);
     if ((page_size <= 0) || ((page_size & (page_size - 1)) != 0)) {
@@ -79,66 +95,56 @@ int main( int c,char **argv) {
 
     vmpc = atoi(argv[2]);
     pmpc = atoi(argv[3]);
-    void *page_table[pmpc]; // array to store physical pages
-    used= malloc(pmpc);
-    addresses= malloc(pmpc);
     if (pmpc < vmpc) {
-        printf("error: pmpc must be larger than or equal to vmpc\n");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "error: pmpc must be larger than or equal to vmpc\n");
+        return 1;
     }
 
 
-    // create page table with alignment
-    for (int i = 0; i < pmpc; i++) {
-        int ret = posix_memalign(&page_table[i], page_size, page_size * pmpc);
-        if (ret != 0) {
-            printf("Error: Failed to allocate memory for physical page %d\n", i);
-            exit(EXIT_FAILURE);
-        }
+    virtualAddresses = malloc(vmpc * sizeof(uint64_t));
+    physicalAddresses = malloc(vmpc * sizeof(uint64_t));
+
+    memset(virtualAddresses, 0, vmpc * sizeof(uint64_t));
+    memset(physicalAddresses, 0, vmpc * sizeof(uint64_t));
+    // Initialize disk
+    diskAddresses = malloc(disk_page_count * sizeof(uint64_t));
+    for (int i = 0; i < disk_page_count; ++i) {
+        uint64_t disk_page;
+        posix_memalign((void **)&disk_page, page_size, page_size);
+        memset((void *)disk_page, 0, page_size);
+        diskAddresses[i] = disk_page;
     }
 
-    char input[10000];
-    char *token;
-    while (1) { // Continuously read input
-        if (fgets(input, sizeof(input), stdin) == NULL) {
-            printf("Error: failed to read input\n");
-            exit(EXIT_FAILURE);
-        }
+    shadowAddresses = malloc(vmpc * sizeof(uint64_t));
+    isDirty = malloc(vmpc * sizeof(int));
 
+    memset(shadowAddresses, 0, vmpc * sizeof(uint64_t));
+    memset(isDirty, 0, vmpc * sizeof(int));
 
-        // Remove newline character from input string-not sure if necessary
-        if (input[strlen(input) - 1] == '\n') {
-            input[strlen(input) - 1] = '\0';
-        }
-
-        // Check if input is "exit", and break out of loop if it is
-        if (strcmp(input, "exit") == 0) {
+    char cmd[10000];
+    while (1) {
+        printf("> ");
+        scanf("%s", cmd);
+        if (strcmp(cmd, "exit") == 0) {
             break;
         }
-        token = strtok(input, " ");
-
-        if (strcmp(token, "readbyte") == 0) {
-            token = strtok(NULL, " ");
-            // translate virtual address to physical address
-            uint32_t virtual_addr = strtoul(token, NULL, 16);
-            readAdd(page_table, virtual_addr,token);
-
-        } else if (strcmp(token, "writebyte") == 0) {
-            token = strtok(NULL, " ");
-            char *val = strtok(NULL, " ");
-            writebyte(page_table, token, val);
+        if (strcmp(cmd, "readbyte") == 0) {
+            accessMemory(0);
+            continue;
+        }
+        if (strcmp(cmd, "writebyte") == 0) {
+            accessMemory(1);
+            continue;
         }
     }
-
-
-    // free physical pages in order they were allocated
-    for (int i = 0; i < pmpc; i++) {
-        if(used[i]==1) {
-            printf("physical page at 0x%llX destroyed\n", addresses[i]);
+    for (int i = 0; i < vmpc; ++i) {
+        if (physicalAddresses[i] != 0) {
+            printf("physical page at 0x%lX destroyed\n",
+                   physicalAddresses[i]);
+            free((void *)physicalAddresses[i]);
         }
-        free(page_table[i]);
     }
-    free(used);
-    free(addresses);
+    free(virtualAddresses);
+    free(physicalAddresses);
     return 0;
 }
